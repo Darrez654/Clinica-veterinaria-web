@@ -1,0 +1,58 @@
+{
+  "$schema": "https://raw.githubusercontent.com/neutralinojs/neutralinojs/main/schemas/neutralino.config.schema.json",
+  "applicationId": "com.vetclinic.app",
+  "version": "1.0.0",
+  "defaultPort": 0,
+  "enableServer": true,
+  "enableNativeAPI": true,
+  "nativeAllowList": [
+    "app.*",
+    "os.*",
+    "debug.log",
+    "filesystem.*",
+    "http.*",
+    "storage.*",
+    "window.*"
+  ],
+  "modes": {
+    "window": {
+      "title": "VetClinic - Sistema de Gestión Veterinaria",
+      "width": 1280,
+      "height": 800,
+      "minWidth": 1024,
+      "minHeight": 600,
+      "fullScreen": false,
+      "alwaysOnTop": false,
+      "icon": "/public/icons/appIcon.png",
+      "enableInspector": true,
+      "borderless": false,
+      "maximize": false,
+      "hidden": false,
+      "resizable": true,
+      "exitProcessOnClose": true
+    },
+    "chrome": {
+      "args": "--disable-features=ChromeWhatsNewUI"
+    }
+  },
+  "cli": {
+    "binaryName": "VetClinic",
+    "resourcesPath": "/dist/",
+    "clientLibrary": "/public/neutralino.js",
+    "binaryVersion": "5.6.0",
+    "clientVersion": "5.6.0",
+    "frontendLibrary": {
+      "patchFile": "/index.html",
+      "devUrl": "http://localhost:5173",
+      "projectPath": "/",
+      "initCommand": "pnpm dev",
+      "buildCommand": "pnpm build",
+      "devCommand": "pnpm dev"
+    }
+  },
+  "security": {
+    "accessToken": "VETCLINIC_NEU_TOKEN",
+    "enableRemote": false,
+    "allowedOrigins": ["http://localhost:5173", "http://localhost:3001"]
+  }
+}
