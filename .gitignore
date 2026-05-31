@@ -1,0 +1,13 @@
+/src/vendor/
+/src/node_modules/
+/src/.env
+/src/storage/framework/cache/data/
+/src/storage/framework/sessions/
+/src/storage/framework/views/
+/src/storage/framework/testing/
+/src/storage/logs/
+/src/bootstrap/cache/*.php
+/src/bootstrap/cache/packages.php
+/src/bootstrap/cache/services.php
+Thumbs.db
+.DS_Store
