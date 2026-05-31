@@ -3,6 +3,18 @@
  * Este archivo es compatible con las 3 plataformas
  */
 
+// ── Roles de usuario ──
+export type UserRole = 'veterinario' | 'dueno' | 'admin';
+
+// ── Información de propiedad (quién creó/modificó el registro) ──
+export interface Ownership {
+  createdBy: string;
+  createdByRole: UserRole;
+  createdAt: string;
+  updatedAt: string;
+  updatedBy?: string;
+}
+
 // ---- Usuarios ----
 export interface User {
   id: number;
@@ -12,6 +24,8 @@ export interface User {
   address: string;
   registrationDate: string;
   active: boolean;
+  role: UserRole;
+  ownership?: Ownership;
 }
 
 export interface UserInput {
@@ -32,6 +46,8 @@ export interface Veterinarian {
   yearsExperience: number;
   active: boolean;
   photoUrl?: string;
+  role: 'veterinario';
+  ownership?: Ownership;
 }
 
 export interface VeterinarianInput {
@@ -57,6 +73,8 @@ export interface Pet {
   color: string;
   photoUrl?: string;
   medicalNotes?: string;
+  role?: 'dueno';
+  ownership?: Ownership;
 }
 
 export interface PetInput {
@@ -71,6 +89,7 @@ export interface PetInput {
 
 // ---- Citas ----
 export type AppointmentStatus = 'Programada' | 'Completada' | 'Cancelada' | 'En curso';
+export type AppointmentRole = 'veterinario' | 'dueno';
 
 export interface Appointment {
   id: number;
@@ -85,6 +104,8 @@ export interface Appointment {
   status: AppointmentStatus;
   notes?: string;
   duration?: number;
+  role?: AppointmentRole;
+  ownership?: Ownership;
 }
 
 export interface AppointmentInput {
@@ -113,6 +134,8 @@ export interface ClinicalRecord {
   temperature: number;
   followUpDate?: string;
   attachments?: string[];
+  role: 'veterinario';
+  ownership?: Ownership;
 }
 
 export interface ClinicalRecordInput {

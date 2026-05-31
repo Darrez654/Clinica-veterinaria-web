@@ -1,16 +1,20 @@
 import { useState } from "react";
-import { Outlet, NavLink, useLocation } from "react-router";
+import { Outlet, NavLink, useLocation, useNavigate } from "react-router";
 import {
   Users, Stethoscope, PawPrint, Calendar, FileText, Home,
-  Menu, X, ChevronLeft, Settings, LogOut, Bell, Moon, Sun,
-  Shield, Maximize2, Minimize2
+  Menu, ChevronLeft, Settings, LogOut, Bell, Shield,
+  LogIn
 } from "lucide-react";
 import { useNeutralino } from "../../hooks/useNeutralino";
+import { useAuth } from "../auth/AuthContext";
 
 export function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const { isNeutralino, os } = useNeutralino();
+  const { user, isAuthenticated, logout } = useAuth();
+  const navigate = useNavigate();
   const location = useLocation();
 
   const navItems = [
@@ -100,7 +104,7 @@ export function Layout() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Bar */}
-        <header className="bg-card/80 backdrop-blur-sm border-b border-border px-4 lg:px-6 py-3 flex items-center justify-between">
+        <header className="bg-card/80 backdrop-blur-sm border-b border-border px-4 lg:px-6 py-3 flex items-center justify-between relative z-50">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -155,13 +159,22 @@ export function Layout() {
             {/* Perfil */}
             <div className="flex items-center gap-2 pl-2 border-l border-border">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white text-sm font-medium">
-                AD
+                {user?.avatar || 'A'}
               </div>
               <div className="hidden sm:block">
-                <p className="text-sm font-medium text-foreground">Admin</p>
-                <p className="text-xs text-muted-foreground">admin@vetclinic.com</p>
+                <p className="text-sm font-medium text-foreground">{user?.name || 'Admin'}</p>
+                <p className="text-xs text-muted-foreground">{user?.email || 'admin@vetclinic.com'}</p>
               </div>
             </div>
+
+            {/* Botón de cerrar sesión */}
+            <button
+              onClick={() => setShowLogoutConfirm(true)}
+              className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-muted-foreground hover:text-red-600 dark:hover:text-red-400 transition-colors"
+              title="Cerrar sesión"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </header>
 
@@ -177,6 +190,41 @@ export function Layout() {
           className="fixed inset-0 bg-black/20 z-10 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
+      )}
+
+      {/* Modal de confirmación de cierre de sesión */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-card border border-border rounded-2xl shadow-2xl p-6 max-w-sm w-full">
+            <div className="text-center">
+              <div className="w-12 h-12 rounded-full bg-red-50 dark:bg-red-950/30 flex items-center justify-center mx-auto mb-3">
+                <LogOut className="w-6 h-6 text-red-500" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-1">¿Cerrar sesión?</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Volverás a la pantalla de inicio de sesión.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowLogoutConfirm(false)}
+                  className="flex-1 py-2 px-4 rounded-xl bg-muted text-foreground font-medium hover:bg-muted/80 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => {
+                    setShowLogoutConfirm(false);
+                    logout();
+                    navigate('/login', { replace: true });
+                  }}
+                  className="flex-1 py-2 px-4 rounded-xl bg-destructive text-destructive-foreground font-medium hover:bg-destructive/90 transition-colors"
+                >
+                  Salir
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -12,17 +12,17 @@ export function EnhancedUsers() {
     {
       id: 1, name: 'Carlos Pérez', email: 'carlos@email.com',
       phone: '+34 612 345 678', address: 'Calle Principal 123, Madrid',
-      registrationDate: '2024-01-15', active: true,
+      registrationDate: '2024-01-15', active: true, role: 'dueno',
     },
     {
       id: 2, name: 'Ana Martínez', email: 'ana@email.com',
       phone: '+34 623 456 789', address: 'Avenida Central 45, Barcelona',
-      registrationDate: '2024-02-20', active: true,
+      registrationDate: '2024-02-20', active: true, role: 'dueno',
     },
     {
       id: 3, name: 'Luis Ramírez', email: 'luis@email.com',
       phone: '+34 634 567 890', address: 'Plaza Mayor 7, Valencia',
-      registrationDate: '2024-03-10', active: true,
+      registrationDate: '2024-03-10', active: true, role: 'dueno',
     },
   ]);
 
@@ -54,6 +54,7 @@ export function EnhancedUsers() {
         ...formData,
         registrationDate: new Date().toISOString().split('T')[0],
         active: true,
+        role: 'dueno',
       };
       setLocalUsers(prev => [...prev, newUser]);
     }

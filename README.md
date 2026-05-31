@@ -17,7 +17,8 @@ pnpm dev
 ## API Mock (desarrollo)
 
 ```bash
-node scripts/mock-api-server.js
+
+node scripts/mock-api-server.cjs
 ```
 
 ## Documentación completa
