@@ -67,4 +67,10 @@ class Mascota extends Model
         return $this->hasMany(Cita::class);
     }
 
+    // --- Mascota → Documentos (PDF) ---
+    public function documentos(): HasMany
+    {
+        return $this->hasMany(Documento::class);
+    }
+
 }

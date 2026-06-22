@@ -8,6 +8,7 @@
 // ============================================================
 
 use App\Models\Cita;
+use App\Models\Documento;
 use App\Models\Mascota;
 use App\Models\RegistroClinico;
 use App\Models\Rol;
@@ -200,6 +201,13 @@ Route::post('/citas/{id}/cancelar', function (int $id) {
 })->middleware('auth');
 
 // ============================================================
+// EXPEDIENTES — Redirigir a /historial (compatibilidad)
+// ============================================================
+Route::get('/expedientes', function () {
+    return redirect('/historial');
+})->middleware('auth');
+
+// ============================================================
 // HISTORIAL CLÍNICO — Listado de registros del usuario
 // ============================================================
 Route::get('/historial', function () {
@@ -210,7 +218,74 @@ Route::get('/historial', function () {
         ->orderBy('fecha', 'desc')
         ->get();
 
-    return view('historial.index', compact('registros'));
+    $mascotas = Mascota::where('usuario_id', Auth::id())->get();
+
+    $documentos = Documento::whereHas('mascota', function ($q) {
+        $q->where('usuario_id', Auth::id());
+    })
+        ->with(['mascota', 'registroClinico'])
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+    return view('historial.index', compact('registros', 'documentos', 'mascotas'));
+})->middleware('auth');
+
+// ============================================================
+// DOCUMENTOS — Subir PDF
+// ============================================================
+Route::post('/documentos/subir', function (Request $request) {
+    $validated = $request->validate([
+        'mascota_id' => 'required|exists:mascotas,id',
+        'archivo'    => 'required|file|mimes:pdf|max:10240',
+    ]);
+
+    $mascota = Mascota::findOrFail($validated['mascota_id']);
+
+    if ($mascota->usuario_id !== Auth::id()) {
+        abort(403, 'Esta mascota no te pertenece.');
+    }
+
+    $file = $request->file('archivo');
+    $nombreOriginal = $file->getClientOriginalName();
+    $nombreArchivo = time() . '_' . $nombreOriginal;
+    $ruta = $file->storeAs('documentos', $nombreArchivo, 'public');
+
+    Documento::create([
+        'mascota_id'      => $validated['mascota_id'],
+        'usuario_id'      => Auth::id(),
+        'nombre_original' => $nombreOriginal,
+        'nombre_archivo'  => $nombreArchivo,
+        'ruta'            => $ruta,
+        'tipo'            => 'pdf',
+        'tamaño'          => round($file->getSize() / 1024),
+    ]);
+
+    return back()->with('status', "PDF «{$nombreOriginal}» subido con éxito.");
+})->middleware('auth');
+
+// ============================================================
+// DOCUMENTOS — Descargar / Ver PDF
+// ============================================================
+Route::get('/documentos/{id}/descargar', function (int $id) {
+    $doc = Documento::findOrFail($id);
+
+    if ($doc->mascota->usuario_id !== Auth::id()) {
+        $rol = Auth::user()->rol->nombre;
+        if (!in_array($rol, ['veterinario', 'admin'])) {
+            abort(403);
+        }
+    }
+
+    $path = storage_path('app/public/' . $doc->ruta);
+
+    if (!file_exists($path)) {
+        abort(404, 'Archivo no encontrado.');
+    }
+
+    return response()->file($path, [
+        'Content-Type' => 'application/pdf',
+        'Content-Disposition' => 'inline; filename="' . $doc->nombre_original . '"',
+    ]);
 })->middleware('auth');
 
 // ============================================================

@@ -7,7 +7,6 @@
 @section('sidebar')
     @parent
     <li><a href="/veterinario/dashboard" class="menu-item active">📅 Citas Pendientes</a></li>
-    <li><a href="/historial" class="menu-item">📄 Historial Clínico</a></li>
     <li><a href="/dashboard" class="menu-item">🏠 Ir al Portal</a></li>
 @endsection
 
