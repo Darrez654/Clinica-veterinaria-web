@@ -1,66 +1,282 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🐾 VetClinic — Sistema de Gestión Veterinaria
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+**VetClinic** es un sistema web monolito construido con **Laravel 11** y **Docker** para la gestión integral de una clínica veterinaria. Permite registrar mascotas, agendar citas, gestionar historiales clínicos y administrar roles de usuario (cliente, veterinario, asistente, admin).
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 📋 Tabla de Contenidos
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+1. [Stack Tecnológico](#-stack-tecnológico)
+2. [Características](#-características)
+3. [Estructura del Proyecto](#-estructura-del-proyecto)
+4. [Instalación Local](#-instalación-local)
+5. [Usuarios de Prueba](#-usuarios-de-prueba)
+6. [Rutas del Sistema](#-rutas-del-sistema)
+7. [Modelo de Datos](#-modelo-de-datos)
+8. [Roles y Permisos](#-roles-y-permisos)
+9. [Despliegue en Producción](#-despliegue-en-producción)
+10. [API REST](#-api-rest)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## 🛠️ Stack Tecnológico
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+| Componente | Tecnología |
+|------------|-----------|
+| **Backend** | Laravel 11 (PHP 8.3) |
+| **Frontend** | Blade + CSS vanilla (sin framework JS) |
+| **Base de datos** | MySQL 8.0 / SQLite (desarrollo) |
+| **Contenedores** | Docker + Docker Compose |
+| **Servidor web** | Nginx (Alpine) |
+| **Autenticación web** | Sesiones nativas de Laravel (`Auth`) |
+| **Autenticación API** | Laravel Sanctum (tokens) |
+| **Middleware personalizado** | `RoleMiddleware` (protección por rol) |
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+---
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## ✨ Características
 
-## Laravel Sponsors
+### 👤 Cliente / Dueño de mascota
+- ✅ Registro e inicio de sesión con sesiones web
+- ✅ Recuperación de contraseña por correo
+- ✅ Dashboard con tarjetas de sus mascotas
+- ✅ Registrar nuevas mascotas (nombre, especie, raza, edad, peso)
+- ✅ Agendar citas veterinarias (seleccionando mascota, fecha, hora, motivo)
+- ✅ Cancelar citas programadas
+- ✅ Ver historial clínico completo de sus mascotas (línea de tiempo)
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### 🩺 Veterinario / Admin
+- ✅ Panel exclusivo con citas pendientes del sistema
+- ✅ Atender citas: formulario para registrar diagnóstico, tratamiento y observaciones
+- ✅ Al atender una cita, se crea automáticamente el registro clínico y la cita pasa a estado "completada"
+- ✅ Acceso al historial clínico global
 
-### Premium Partners
+### 🔐 Seguridad
+- ✅ Middleware `role` para proteger rutas por rol (`admin`, `veterinario`, `asistente`, `cliente`)
+- ✅ CSRF protection en todos los formularios
+- ✅ Validación de pertenencia (solo el dueño puede ver/modificar sus mascotas y citas)
+- ✅ Contraseñas hasheadas con Bcrypt
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+---
 
-## Contributing
+## 📁 Estructura del Proyecto
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```
+mi-servidor-laravel/
+├── app/
+│   ├── Http/
+│   │   ├── Controllers/       # Controladores API REST
+│   │   └── Middleware/
+│   │       └── RoleMiddleware.php  # Protección por roles
+│   ├── Models/
+│   │   ├── Usuario.php        # Modelo personalizado (tabla: usuarios)
+│   │   ├── Mascota.php
+│   │   ├── Cita.php
+│   │   ├── Rol.php
+│   │   └── RegistroClinico.php
+├── bootstrap/
+│   └── app.php                # Registro del middleware 'role'
+├── config/
+│   └── auth.php               # Configuración de autenticación (modelo Usuario)
+├── database/
+│   ├── migrations/            # 10 migraciones (tablas del sistema)
+│   └── seeders/
+│       ├── DatabaseSeeder.php
+│       └── RolSeeder.php      # 4 roles: admin, veterinario, asistente, cliente
+├── resources/views/
+│   ├── layouts/
+│   │   └── app.blade.php      # Layout base (sidebar, header, footer)
+│   ├── auth/
+│   │   ├── forgot-password.blade.php
+│   │   └── reset-password.blade.php
+│   ├── citas/index.blade.php
+│   ├── historial/index.blade.php
+│   ├── mascotas/create.blade.php
+│   ├── veterinario/dashboard.blade.php
+│   ├── dashboard.blade.php
+│   ├── login.blade.php
+│   └── registro.blade.php
+├── routes/
+│   ├── web.php                # 14 rutas web (monolito)
+│   └── api.php                # 19 rutas API REST
+├── Dockerfile
+├── docker-compose.yml
+└── .env.example
+```
 
-## Code of Conduct
+---
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## 🚀 Instalación Local
 
-## Security Vulnerabilities
+### Prerrequisitos
+- Docker Desktop
+- Git
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Pasos
 
-## License
+```bash
+# 1. Clonar el repositorio
+git clone https://github.com/Darrez654/Clinica-veterinaria-web.git
+cd Clinica-veterinaria-web
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+# 2. Copiar entorno
+copy .env.example .env
+
+# 3. Levantar contenedores
+docker-compose up -d --build
+
+# 4. Instalar dependencias
+docker-compose exec php composer install
+
+# 5. Generar APP_KEY
+docker-compose exec php php artisan key:generate
+
+# 6. Ejecutar migraciones y seeders
+docker-compose exec php php artisan migrate --seed
+
+# 7. Acceder
+http://localhost:8080
+```
+
+> ⚠️ Si usas **PowerShell**, separa los comandos con `;` en vez de `&&`.
+
+### Variables de entorno (`.env`)
+
+```ini
+DB_CONNECTION=mysql
+DB_HOST=mysql
+DB_PORT=3306
+DB_DATABASE=laravel_db
+DB_USERNAME=laravel_user
+DB_PASSWORD=secret
+
+MAIL_MAILER=log         # Para desarrollo: guarda correos en storage/logs/laravel.log
+```
+
+---
+
+## 👥 Usuarios de Prueba
+
+> Los siguientes usuarios se crean al ejecutar `php artisan migrate --seed`.
+
+| Rol | Nombre | Email | Contraseña |
+|-----|--------|-------|------------|
+| 🛡️ Admin | Admin VetClinic | `admin@vetclinic.com` | `admin123` |
+| 🩺 Veterinario | Dr. Carlos Mendoza | `vet@vetclinic.com` | `vet123` |
+| 🐾 Cliente | Pedro Rodríguez | `pedro@email.com` | `123456` |
+| 🐾 Cliente | Ana Martínez | `ana@email.com` | `123456` |
+
+---
+
+## 🛣️ Rutas del Sistema
+
+### 🌐 Rutas Web (Monolito Blade)
+
+| Método | URL | Middleware | Descripción |
+|--------|-----|------------|-------------|
+| GET | `/` o `/login` | `guest` | Formulario de inicio de sesión |
+| POST | `/login` | `guest` | Procesar inicio de sesión |
+| GET | `/registro` | `guest` | Formulario de registro |
+| POST | `/registro` | `guest` | Crear cuenta nueva (rol: cliente) |
+| GET | `/olvide-contrasena` | `guest` | Solicitar recuperación de contraseña |
+| POST | `/olvide-contrasena` | `guest` | Enviar enlace de recuperación |
+| GET | `/restablecer-contrasena/{token}` | `guest` | Formulario para nueva contraseña |
+| POST | `/restablecer-contrasena` | `guest` | Procesar restablecimiento |
+| GET | `/dashboard` | `auth` | Dashboard del cliente (o redirige a vet si es admin/vet) |
+| GET | `/veterinario/dashboard` | `role:veterinario,admin` | Panel del veterinario (citas pendientes) |
+| GET | `/mascotas/registrar` | `auth` | Formulario de registro de mascota |
+| POST | `/mascotas/registrar` | `auth` | Guardar nueva mascota |
+| GET | `/citas` | `auth` | Listado de citas + formulario nueva cita |
+| POST | `/citas` | `auth` | Agendar nueva cita |
+| POST | `/citas/{id}/cancelar` | `auth` | Cancelar cita (solo el dueño) |
+| POST | `/citas/{id}/atender` | `role:veterinario,admin` | Atender cita + crear registro clínico |
+| GET | `/historial` | `auth` | Historial clínico del usuario (cliente) |
+
+### 🔌 Rutas API REST
+
+| Método | Endpoint | Autenticación | Descripción |
+|--------|----------|---------------|-------------|
+| POST | `/api/v1/login` | Pública | Inicio de sesión (token) |
+| POST | `/api/v1/registro` | Pública | Registro de usuario |
+| GET | `/api/v1/perfil` | Sanctum | Perfil del usuario autenticado |
+| GET/POST | `/api/v1/mascotas` | Sanctum | Listar / Crear mascotas |
+| GET/PUT/DELETE | `/api/v1/mascotas/{id}` | Sanctum | CRUD de mascota individual |
+| GET/POST | `/api/v1/citas` | Sanctum | Listar / Crear citas |
+| PUT/DELETE | `/api/v1/citas/{id}` | Sanctum | Actualizar / Cancelar cita |
+| GET | `/api/v1/registros-clinicos` | Sanctum | Listar registros clínicos del usuario |
+| GET | `/api/v1/mascotas/{id}/historial` | Sanctum | Historial de una mascota específica |
+
+---
+
+## 📊 Modelo de Datos
+
+```
+roles (id, nombre, descripcion)
+  │
+  └── usuarios (id, nombre, email, password, rol_id, telefono, direccion)
+         │
+         ├── mascotas (id, nombre, especie, raza, edad, peso, color, usuario_id)
+         │     ├── registros_clinicos (id, mascota_id, veterinario_id, fecha, tipo, diagnostico, tratamiento, observaciones)
+         │     └── citas (id, mascota_id, usuario_id, veterinario_id, fecha, hora, motivo, estado, notas)
+         │
+         └── citas (como dueño)
+```
+
+---
+
+## 🎭 Roles y Permisos
+
+| Rol | Acceso |
+|-----|--------|
+| **admin** 🛡️ | Panel veterinario + todas las vistas + API completa |
+| **veterinario** 🩺 | Panel veterinario (atender citas, registrar historial) + API |
+| **asistente** 🤝 | Panel de cliente + tareas administrativas básicas |
+| **cliente** 🐾 | Solo sus mascotas, citas e historial clínico |
+
+El middleware `role` se usa así en las rutas:
+
+```php
+Route::get('/veterinario/dashboard', function () {
+    // ...
+})->middleware('role:veterinario,admin');
+```
+
+---
+
+## ☁️ Despliegue en Producción (VPS)
+
+### En el servidor (DigitalOcean, AWS, etc.):
+
+```bash
+# 1. Clonar
+git clone https://github.com/Darrez654/Clinica-veterinaria-web.git
+cd Clinica-veterinaria-web
+
+# 2. Configurar .env
+nano .env
+# APP_ENV=production
+# APP_DEBUG=false
+# APP_URL=https://tudominio.com
+
+# 3. Construir y levantar
+docker-compose up -d --build
+
+# 4. Migrar
+docker-compose exec php php artisan migrate --seed
+
+# 5. Optimizar Laravel
+docker-compose exec php php artisan optimize
+
+# 6. Permisos
+docker-compose exec php chmod -R 775 storage bootstrap/cache
+```
+
+---
+
+## 📄 Licencia
+
+Este proyecto está bajo la licencia MIT.
+
+---
+
+<p align="center">Desarrollado con ❤️ para la gestión veterinaria moderna 🐾</p>
