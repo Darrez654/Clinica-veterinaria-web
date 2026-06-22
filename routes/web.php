@@ -1,0 +1,302 @@
+<?php
+
+// ============================================================
+// RUTAS WEB
+// ============================================================
+// Las rutas web no requieren token (usan sesión del navegador)
+// El dashboard valida el token desde JavaScript (localStorage)
+// ============================================================
+
+use App\Models\Cita;
+use App\Models\Mascota;
+use App\Models\RegistroClinico;
+use App\Models\Rol;
+use App\Models\Usuario;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Route;
+
+
+// ============================================================
+// RAIZ
+// ============================================================
+Route::get('/', function () {
+    return view('login');
+});
+
+// ============================================================
+// LOGIN — Mostrar formulario
+// ============================================================
+Route::get('/login', function () {
+    return view('login');
+})->name('login');
+
+// ============================================================
+// REGISTRO — Mostrar formulario
+// ============================================================
+Route::get('/registro', function () {
+    return view('registro');
+});
+
+// ============================================================
+// REGISTRO — Procesar creación de cuenta
+// ============================================================
+Route::post('/registro', function (Request $request) {
+    $validated = $request->validate([
+        'nombre'     => 'required|string|max:100',
+        'email'      => 'required|email|unique:usuarios,email',
+        'password'   => 'required|string|min:6|confirmed',
+    ]);
+
+    $user = Usuario::create([
+        'nombre'   => $validated['nombre'],
+        'email'    => $validated['email'],
+        'password' => Hash::make($validated['password']),
+        'rol_id'   => Rol::where('nombre', 'cliente')->first()->id,
+    ]);
+
+    Auth::login($user);
+    $request->session()->regenerate();
+
+    return redirect('/dashboard');
+});
+
+// ============================================================
+// LOGIN — Procesar inicio de sesión
+// ============================================================
+Route::post('/login', function (Request $request) {
+    $credentials = $request->validate([
+        'email'    => 'required|email',
+        'password' => 'required',
+    ]);
+
+    $user = Usuario::where('email', $request->email)->first();
+
+    if ($user && Hash::check($request->password, $user->password)) {
+        Auth::login($user);
+        $request->session()->regenerate();
+
+        $rol = $user->rol->nombre;
+        $redirect = in_array($rol, ['veterinario', 'admin'])
+            ? '/veterinario/dashboard'
+            : '/dashboard';
+
+        return redirect()->intended($redirect);
+    }
+
+    return back()->withErrors([
+        'email' => 'Credenciales inválidas.',
+    ])->onlyInput('email');
+});
+
+// ============================================================
+// DASHBOARD — Redirigir según rol
+// ============================================================
+Route::get('/dashboard', function () {
+    $rol = Auth::user()->rol->nombre;
+
+    if (in_array($rol, ['veterinario', 'admin'])) {
+        return redirect('/veterinario/dashboard');
+    }
+
+    $mascotas = Mascota::where('usuario_id', Auth::id())
+        ->withCount('registrosClinicos')
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+    return view('dashboard', compact('mascotas'));
+})->middleware('auth');
+
+// ============================================================
+// MASCOTAS — Mostrar formulario de registro
+// ============================================================
+Route::get('/mascotas/registrar', function () {
+    return view('mascotas.create');
+})->middleware('auth');
+
+// ============================================================
+// MASCOTAS — Procesar registro
+// ============================================================
+Route::post('/mascotas/registrar', function (Request $request) {
+    $validated = $request->validate([
+        'nombre'  => 'required|string|max:100',
+        'especie' => 'required|string|max:50',
+        'raza'    => 'nullable|string|max:100',
+        'edad'    => 'nullable|integer|min:0|max:50',
+        'peso'    => 'nullable|numeric|min:0|max:500',
+    ]);
+
+    $mascota = Mascota::create([
+        'nombre'     => $validated['nombre'],
+        'especie'    => $validated['especie'],
+        'raza'       => $validated['raza'],
+        'edad'       => $validated['edad'],
+        'peso'       => $validated['peso'],
+        'usuario_id' => Auth::id(),
+    ]);
+
+    return redirect('/dashboard')->with('status', "¡{$mascota->nombre} registrada con éxito!");
+})->middleware('auth');
+
+// ============================================================
+// CITAS — Listado y formulario
+// ============================================================
+Route::get('/citas', function () {
+    $citas = Cita::where('usuario_id', Auth::id())
+        ->with(['mascota', 'veterinario'])
+        ->orderBy('fecha', 'desc')
+        ->orderBy('hora', 'desc')
+        ->get();
+
+    $mascotas = Mascota::where('usuario_id', Auth::id())->get();
+
+    return view('citas.index', compact('citas', 'mascotas'));
+})->middleware('auth');
+
+// ============================================================
+// CITAS — Agendar nueva cita
+// ============================================================
+Route::post('/citas', function (Request $request) {
+    $validated = $request->validate([
+        'mascota_id' => 'required|exists:mascotas,id',
+        'fecha'      => 'required|date|after_or_equal:today',
+        'hora'       => 'required|date_format:H:i',
+        'motivo'     => 'required|string|max:255',
+    ]);
+
+    $mascota = Mascota::findOrFail($validated['mascota_id']);
+
+    if ($mascota->usuario_id !== Auth::id()) {
+        abort(403, 'Esta mascota no te pertenece.');
+    }
+
+    Cita::create([
+        'mascota_id' => $validated['mascota_id'],
+        'usuario_id' => Auth::id(),
+        'fecha'      => $validated['fecha'],
+        'hora'       => $validated['hora'],
+        'motivo'     => $validated['motivo'],
+        'estado'     => 'programada',
+    ]);
+
+    return redirect('/citas')->with('status', 'Cita agendada con éxito.');
+})->middleware('auth');
+
+// ============================================================
+// CITAS — Cancelar cita
+// ============================================================
+Route::post('/citas/{id}/cancelar', function (int $id) {
+    $cita = Cita::findOrFail($id);
+
+    if ($cita->usuario_id !== Auth::id()) {
+        abort(403, 'No puedes cancelar una cita que no te pertenece.');
+    }
+
+    $cita->update(['estado' => 'cancelada']);
+
+    return redirect('/citas')->with('status', 'Cita cancelada.');
+})->middleware('auth');
+
+// ============================================================
+// HISTORIAL CLÍNICO — Listado de registros del usuario
+// ============================================================
+Route::get('/historial', function () {
+    $registros = RegistroClinico::whereHas('mascota', function ($q) {
+        $q->where('usuario_id', Auth::id());
+    })
+        ->with(['mascota', 'veterinario'])
+        ->orderBy('fecha', 'desc')
+        ->get();
+
+    return view('historial.index', compact('registros'));
+})->middleware('auth');
+
+// ============================================================
+// VETERINARIO — Panel principal (citas programadas)
+// ============================================================
+Route::get('/veterinario/dashboard', function () {
+    $citas = Cita::where('estado', 'programada')
+        ->with(['mascota', 'mascota.usuario', 'usuario'])
+        ->orderBy('fecha', 'asc')
+        ->orderBy('hora', 'asc')
+        ->get();
+
+    return view('veterinario.dashboard', compact('citas'));
+})->middleware('role:veterinario,admin');
+
+// ============================================================
+// VETERINARIO — Atender cita (guardar historial + completar)
+// ============================================================
+Route::post('/citas/{id}/atender', function (Request $request, int $id) {
+    $cita = Cita::with('mascota')->findOrFail($id);
+
+    if ($cita->estado !== 'programada') {
+        return back()->withErrors(['cita' => 'Esta cita ya fue atendida o cancelada.']);
+    }
+
+    $validated = $request->validate([
+        'diagnostico'  => 'nullable|string|max:1000',
+        'tratamiento'  => 'nullable|string|max:1000',
+        'observaciones' => 'nullable|string|max:1000',
+    ]);
+
+    RegistroClinico::create([
+        'mascota_id'     => $cita->mascota_id,
+        'veterinario_id' => Auth::id(),
+        'fecha'          => now()->toDateString(),
+        'tipo'           => 'consulta',
+        'diagnostico'    => $validated['diagnostico'],
+        'tratamiento'    => $validated['tratamiento'],
+        'observaciones'  => $validated['observaciones'],
+    ]);
+
+    $cita->update(['estado' => 'completada']);
+
+    return redirect('/veterinario/dashboard')
+        ->with('status', 'Cita atendida. Historial clínico registrado.');
+})->middleware('role:veterinario,admin');
+
+// ============================================================
+// OLVIDÉ CONTRASEÑA — Solicitar enlace
+// ============================================================
+Route::get('/olvide-contrasena', function () {
+    return view('auth.forgot-password');
+})->middleware('guest');
+
+Route::post('/olvide-contrasena', function (Request $request) {
+    $request->validate(['email' => 'required|email']);
+
+    $status = Password::sendResetLink($request->only('email'));
+
+    return $status === Password::RESET_LINK_SENT
+        ? back()->with(['status' => __($status)])
+        : back()->withErrors(['email' => __($status)]);
+})->middleware('guest');
+
+// ============================================================
+// RESTABLECER CONTRASEÑA — Mostrar formulario con token
+// ============================================================
+Route::get('/restablecer-contrasena/{token}', function (string $token) {
+    return view('auth.reset-password', ['token' => $token]);
+})->middleware('guest')->name('password.reset');
+
+Route::post('/restablecer-contrasena', function (Request $request) {
+    $request->validate([
+        'token'    => 'required',
+        'email'    => 'required|email',
+        'password' => 'required|string|min:6|confirmed',
+    ]);
+
+    $status = Password::reset(
+        $request->only('email', 'password', 'password_confirmation', 'token'),
+        function ($user, $password) {
+            $user->forceFill(['password' => Hash::make($password)])->save();
+        }
+    );
+
+    return $status === Password::PASSWORD_RESET
+        ? redirect('/login')->with('status', __($status))
+        : back()->withErrors(['email' => [__($status)]]);
+})->middleware('guest');
