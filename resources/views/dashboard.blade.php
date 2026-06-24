@@ -10,6 +10,7 @@
     <li><a href="/mascotas/registrar" class="menu-item">🐾 Registrar Mascota</a></li>
     <li><a href="/citas" class="menu-item">📅 Mis Citas</a></li>
     <li><a href="/expedientes" class="menu-item">📄 Expedientes</a></li>
+    <li><a href="/notificaciones" class="menu-item">🔔 Notificaciones</a></li>
 @endsection
 
 @section('content')

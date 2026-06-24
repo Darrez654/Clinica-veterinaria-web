@@ -10,6 +10,7 @@
 use App\Models\Cita;
 use App\Models\Documento;
 use App\Models\Mascota;
+use App\Models\Notificacion;
 use App\Models\RegistroClinico;
 use App\Models\Rol;
 use App\Models\Usuario;
@@ -51,11 +52,14 @@ Route::post('/registro', function (Request $request) {
         'password'   => 'required|string|min:6|confirmed',
     ]);
 
+    // Asignar rol 'cliente' por defecto
+    $rolCliente = Rol::where('nombre', 'cliente')->firstOrFail();
+
     $user = Usuario::create([
         'nombre'   => $validated['nombre'],
         'email'    => $validated['email'],
         'password' => Hash::make($validated['password']),
-        'rol_id'   => Rol::where('nombre', 'cliente')->first()->id,
+        'rol_id'   => $rolCliente->id,
     ]);
 
     Auth::login($user);
@@ -91,6 +95,122 @@ Route::post('/login', function (Request $request) {
         'email' => 'Credenciales inválidas.',
     ])->onlyInput('email');
 });
+
+// ============================================================
+// ADMIN — Gestión de usuarios (solo admin)
+// ============================================================
+Route::get('/admin/usuarios', function () {
+    $usuarios = Usuario::with('rol')->orderBy('created_at', 'desc')->paginate(20);
+    $roles = Rol::all();
+    return view('admin.usuarios', compact('usuarios', 'roles'));
+})->middleware('role:admin');
+
+// ============================================================
+// ADMIN — Actualizar rol de un usuario
+// ============================================================
+Route::post('/admin/usuarios/{id}/rol', function (Request $request, int $id) {
+    $validated = $request->validate([
+        'rol_id' => 'required|exists:roles,id',
+    ]);
+
+    $usuario = Usuario::findOrFail($id);
+    
+    // Evitar que un admin se quite sus propios permisos
+    if ($usuario->id === Auth::id()) {
+        return back()->withErrors(['rol' => 'No puedes cambiarte el rol a ti mismo.']);
+    }
+
+    $usuario->update(['rol_id' => $validated['rol_id']]);
+
+    return redirect('/admin/usuarios')->with('status', "Rol de {$usuario->nombre} actualizado.");
+})->middleware('role:admin');
+
+// ============================================================
+// ADMIN — Ver Audit Logs
+// ============================================================
+Route::get('/admin/audit-logs', function () {
+    $logs = App\Models\AuditLog::with('usuario')
+        ->orderBy('created_at', 'desc')
+        ->paginate(30);
+
+    $anomalias = App\Models\AuditLog::where('severidad', 'ALTA')
+        ->orderBy('created_at', 'desc')
+        ->limit(5)
+        ->get();
+
+    return view('admin.audit-logs', compact('logs', 'anomalias'));
+})->middleware('role:admin');
+
+// ============================================================
+// ADMIN — Eliminar usuario
+// ============================================================
+Route::delete('/admin/usuarios/{id}', function (int $id) {
+    $usuario = Usuario::findOrFail($id);
+
+    // Evitar que un admin se elimine a sí mismo
+    if ($usuario->id === Auth::id()) {
+        return back()->withErrors(['error' => 'No puedes eliminarte a ti mismo.']);
+    }
+
+    $nombre = $usuario->nombre;
+    $usuario->delete();
+
+    return redirect('/admin/usuarios')->with('status', "Usuario «{$nombre}» eliminado.");
+})->middleware('role:admin');
+
+// ============================================================
+// LOGOUT — Cerrar sesión
+// ============================================================
+Route::post('/logout', function (Request $request) {
+    Auth::logout();
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
+    return redirect('/login');
+})->name('logout');
+
+// ============================================================
+// NOTIFICACIONES — Listar
+// ============================================================
+Route::get('/notificaciones', function () {
+    $notificaciones = Notificacion::where('usuario_id', Auth::id())
+        ->orderBy('created_at', 'desc')
+        ->paginate(20);
+
+    return view('notificaciones.index', compact('notificaciones'));
+})->middleware('auth');
+
+// ============================================================
+// NOTIFICACIONES — Marcar una como leída
+// ============================================================
+Route::post('/notificaciones/{id}/leer', function (int $id) {
+    $notif = Notificacion::where('id', $id)
+        ->where('usuario_id', Auth::id())
+        ->firstOrFail();
+
+    $notif->update(['leido' => true]);
+
+    return back();
+})->middleware('auth');
+
+// ============================================================
+// NOTIFICACIONES — Marcar todas como leídas
+// ============================================================
+Route::post('/notificaciones/leer-todas', function () {
+    Notificacion::where('usuario_id', Auth::id())
+        ->where('leido', false)
+        ->update(['leido' => true]);
+
+    return back()->with('status', 'Todas las notificaciones marcadas como leídas.');
+})->middleware('auth');
+
+// ============================================================
+// NOTIFICACIONES — Contar no leídas (para el badge)
+// ============================================================
+Route::get('/notificaciones/contar', function () {
+    return response()->json([
+        'no_leidas' => Notificacion::noLeidas(Auth::id()),
+    ]);
+})->middleware('auth');
 
 // ============================================================
 // DASHBOARD — Redirigir según rol
@@ -173,7 +293,7 @@ Route::post('/citas', function (Request $request) {
         abort(403, 'Esta mascota no te pertenece.');
     }
 
-    Cita::create([
+    $cita = Cita::create([
         'mascota_id' => $validated['mascota_id'],
         'usuario_id' => Auth::id(),
         'fecha'      => $validated['fecha'],
@@ -181,6 +301,27 @@ Route::post('/citas', function (Request $request) {
         'motivo'     => $validated['motivo'],
         'estado'     => 'programada',
     ]);
+
+    // 🔔 Notificar al cliente
+    Notificacion::crear(
+        Auth::id(),
+        'cita',
+        "Cita agendada para {$mascota->nombre}",
+        "El {$validated['fecha']} a las {$validated['hora']} - Motivo: {$validated['motivo']}",
+        '/citas'
+    );
+
+    // 🔔 Notificar a todos los veterinarios (si no hay uno asignado)
+    $veterinarios = Usuario::whereHas('rol', fn($q) => $q->where('nombre', 'veterinario'))->get();
+    foreach ($veterinarios as $vet) {
+        Notificacion::crear(
+            $vet->id,
+            'cita',
+            "Nueva cita: {$mascota->nombre}",
+            "Cliente: " . Auth::user()->nombre . " - {$validated['fecha']} a las {$validated['hora']}",
+            '/veterinario/dashboard'
+        );
+    }
 
     return redirect('/citas')->with('status', 'Cita agendada con éxito.');
 })->middleware('auth');
@@ -196,6 +337,15 @@ Route::post('/citas/{id}/cancelar', function (int $id) {
     }
 
     $cita->update(['estado' => 'cancelada']);
+
+    // 🔔 Notificar al cliente
+    Notificacion::crear(
+        Auth::id(),
+        'cita',
+        "Cita cancelada",
+        "Cita del {$cita->fecha} a las {$cita->hora} para {$cita->mascota->nombre} fue cancelada.",
+        '/citas'
+    );
 
     return redirect('/citas')->with('status', 'Cita cancelada.');
 })->middleware('auth');
@@ -328,6 +478,25 @@ Route::post('/citas/{id}/atender', function (Request $request, int $id) {
     ]);
 
     $cita->update(['estado' => 'completada']);
+
+    // 🔔 Notificar al dueño de la mascota
+    $dueno = $cita->mascota->dueno;
+    if ($dueno) {
+        $tieneVacuna = str_contains(strtolower($validated['diagnostico'] ?? ''), 'vacuna')
+            || str_contains(strtolower($validated['tratamiento'] ?? ''), 'vacuna');
+
+        Notificacion::crear(
+            $dueno->id,
+            $tieneVacuna ? 'vacunacion' : 'cita',
+            $tieneVacuna
+                ? "💉 Vacunación registrada para {$cita->mascota->nombre}"
+                : "✅ Cita completada para {$cita->mascota->nombre}",
+            $tieneVacuna
+                ? "Se registró una vacunación. Diagnóstico: " . ($validated['diagnostico'] ?? 'N/A')
+                : "La cita del {$cita->fecha} fue atendida. Revisa el historial clínico.",
+            '/historial'
+        );
+    }
 
     return redirect('/veterinario/dashboard')
         ->with('status', 'Cita atendida. Historial clínico registrado.');

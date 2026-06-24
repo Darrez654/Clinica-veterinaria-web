@@ -13,8 +13,16 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
-            'role' => \App\Http\Middleware\RoleMiddleware::class,
+            'role'    => \App\Http\Middleware\RoleMiddleware::class,
+            'audit'   => \App\Http\Middleware\AuditMiddleware::class,
+            'anomalia' => \App\Http\Middleware\AnomaliaMiddleware::class,
         ]);
+
+        // AuditMiddleware: registra cada visita
+        $middleware->appendToGroup('web', \App\Http\Middleware\AuditMiddleware::class);
+
+        // AnomaliaMiddleware: protege rutas que reciben datos (POST, PUT, DELETE)
+        $middleware->appendToGroup('web', \App\Http\Middleware\AnomaliaMiddleware::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

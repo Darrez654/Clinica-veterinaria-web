@@ -1,168 +1,99 @@
 @extends('layouts.app')
 
-@section('title', 'VetClinic - Mis Citas')
+@section('title', 'VetClinic - Mis Mascotas')
 
-@section('breadcrumbs', 'Home > Mis Citas')
+@section('breadcrumbs', 'Home > Mis Mascotas')
 
 @section('sidebar')
     @parent
-    <li><a href="/dashboard" class="menu-item">🏠 Mis Mascotas</a></li>
-    <li><a href="/mascotas/registrar" class="menu-item">🐾 Registrar Mascota</a></li>
-    <li><a href="/citas" class="menu-item active">📅 Mis Citas</a></li>
-    <li><a href="/expedientes" class="menu-item">📄 Expedientes</a></li>
+
+
+
+
+    <li><a href="{{ url('/dashboard') }}" class="menu-item active">🏠 Mis Mascotas</a></li>
+    <li><a href="{{ url('/mascotas/registrar') }}" class="menu-item">🐾 Registrar Mascota</a></li>
+    <li><a href="{{ url('/citas') }}" class="menu-item">📅 Mis Citas</a></li>
+    <li><a href="{{ url('/historial') }}" class="menu-item">📄 Expedientes</a></li>
 @endsection
 
 @section('content')
-    <div class="page-header-block">
-        <div>
-            <h1 class="page-title-sm">Mis Citas</h1>
-            <p class="page-subtitle">Administra tus citas veterinarias o agenda una nueva.</p>
-        </div>
-    </div>
+    <h1 class="page-title">Mis Mascotas</h1>
+    <p class="welcome-text">
+        Bienvenido, {{ Auth::user()->nombre }} •
+        <span style="background:#f3e6d3; padding:2px 6px; border-radius:4px;">{{ Auth::user()->rol->nombre ?? 'Dueño' }}</span>
+    </p>
 
-    <div style="display:grid; grid-template-columns:1fr 360px; gap:24px; align-items:start;">
-
-        {{-- ============================================================
-             COLUMNA IZQUIERDA — LISTADO DE CITAS
-             ============================================================ --}}
-        <div>
-            <div class="management-container">
-                <div class="section-header">
-                    <div>Citas agendadas</div>
+    @forelse ($mascotas as $mascota)
+        @if ($loop->first)
+            <div class="section-header">
+                <div>
+                    Mis Mascotas
                     <span style="background:#cedbd0; font-size:12px; padding:2px 8px; border-radius:10px;">
-                        {{ $citas->count() }} cita{{ $citas->count() !== 1 ? 's' : '' }}
+                        {{ $mascotas->count() }} registrada{{ $mascotas->count() !== 1 ? 's' : '' }}
                     </span>
                 </div>
+            </div>
+            <div class="grid-2">
+        @endif
 
-                @forelse ($citas as $cita)
-                    <div class="appointment-row" style="
-                        border:1px solid #eef2ee; border-radius:12px;
-                        padding:16px 20px; background:#fafcfa;
-                        margin-bottom:12px; transition:all 0.2s;
-                    ">
-                        <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
-                            <span class="badge-info" style="padding:4px 12px; border-radius:20px; font-size:12px; font-weight:500; background:#f0f4f2; color:#4a5751;">
-                                🐾 {{ $cita->mascota->nombre ?? '—' }}
-                            </span>
-                            <span class="badge-time" style="padding:4px 12px; border-radius:20px; font-size:12px; font-weight:500; background:#e8f0fa; color:#2b4c7e;">
-                                {{ \Carbon\Carbon::parse($cita->fecha)->format('d/m/Y') }} — {{ $cita->hora }}
-                            </span>
-                            <span class="status-badge {{ $cita->estado === 'completada' ? 'status-done' : ($cita->estado === 'cancelada' ? 'status-canceled' : 'status-pending') }}">
-                                {{ $cita->estado }}
-                            </span>
-                        </div>
-
-                        <div style="display:grid; grid-template-columns:1fr auto; gap:16px; align-items:center;">
-                            <div>
-                                <p style="font-size:13px; margin-bottom:4px;">
-                                    <span style="color:#6b7770;">Motivo:</span>
-                                    <span style="font-weight:500;">{{ $cita->motivo }}</span>
-                                </p>
-                                <p style="font-size:13px; margin:0;">
-                                    <span style="color:#6b7770;">Veterinario:</span>
-                                    <span style="font-weight:500;">{{ $cita->veterinario->nombre ?? 'Pendiente' }}</span>
-                                </p>
-                            </div>
-                            @if ($cita->estado === 'programada')
-                                <form method="POST" action="/citas/{{ $cita->id }}/cancelar" onsubmit="return confirm('¿Cancelar esta cita?')">
-                                    @csrf
-                                    <button type="submit" class="btn-action btn-cancel" style="
-                                        width:32px; height:32px; border-radius:8px; border:none;
-                                        background:#fee9e7; color:#b33a2e; cursor:pointer;
-                                        display:flex; align-items:center; justify-content:center;
-                                    " title="Cancelar cita">✕</button>
-                                </form>
-                            @endif
-                        </div>
-                    </div>
-                @empty
-                    <div style="text-align:center; padding:40px; color:#6b7770;">
-                        <p style="font-size:40px; margin-bottom:10px;">📅</p>
-                        <p style="font-size:16px; font-weight:500;">No tienes citas agendadas</p>
-                        <p style="font-size:13px;">Usa el formulario de la derecha para agendar una.</p>
-                    </div>
-                @endforelse
+        <div class="card pet-card" style="background-color:#fbf6ee; border:1px solid #f0e6d6;">
+            <div class="pet-info" style="display:flex; gap:15px; margin-bottom:15px; position:relative;">
+                <div class="pet-img" style="
+                    width:70px; height:70px; border-radius:12px;
+                    background-color: {{ ['#e3c49a', '#a49689', '#c4a882', '#b8a99a', '#d4b89b'][$loop->index % 5] }};
+                    flex-shrink:0;
+                "></div>
+                <div style="flex:1;">
+                    <h2 style="font-size:18px;">{{ $mascota->nombre }}</h2>
+                    <p style="color:#6b7770; font-size:14px;">
+                        {{ $mascota->raza ?: $mascota->especie }}
+                    </p>
+                    <span class="pet-badge" style="background:#f3e6d3; padding:2px 8px; border-radius:20px; font-size:12px; display:inline-block; margin-top:5px;">
+                        {{ $mascota->especie }}
+                    </span>
+                    <span style="font-size:13px; margin-left:5px; color:#6b7770;">
+                        @if ($mascota->edad) {{ $mascota->edad }} años @endif
+                        @if ($mascota->peso) • {{ $mascota->peso }} kg @endif
+                    </span>
+                </div>
+                <span style="position:absolute; right:0; top:0; color:#00A86B; font-size:12px;">
+                    {{ $mascota->registros_clinicos_count }} registro{{ $mascota->registros_clinicos_count !== 1 ? 's' : '' }}
+                </span>
+            </div>
+            <div class="btn-group" style="display:flex; gap:10px;">
+                <button class="btn btn-orange" style="background-color:#f7dcd0; color:#b05328; border:none; border-radius:10px; padding:10px; font-size:14px; cursor:pointer; flex:1;">
+                    Pedir cita
+                </button>
+                <button class="btn btn-outline" style="background:transparent; border:1px solid #c8bca6; color:#4a3e2e; border-radius:10px; padding:10px; font-size:14px; cursor:pointer; flex:1;">
+                    Ver expediente
+                </button>
             </div>
         </div>
 
-        {{-- ============================================================
-             COLUMNA DERECHA — FORMULARIO NUEVA CITA
-             ============================================================ --}}
-        <div>
-            <div class="card" style="position:sticky; top:90px;">
-                <h2 style="font-size:18px; margin-bottom:4px;">📅 Nueva Cita</h2>
-                <p style="font-size:13px; color:#6b7770; margin-bottom:18px;">Selecciona mascota, fecha y motivo.</p>
-
-                <form method="POST" action="/citas">
-                    @csrf
-
-                    <div class="form-group" style="margin-bottom:16px;">
-                        <label for="mascota_id" style="display:block; font-size:13px; font-weight:600; color:#4a5751; margin-bottom:6px;">Mascota *</label>
-                        <select name="mascota_id" id="mascota_id" class="search-input @error('mascota_id') is-invalid @enderror" required>
-                            <option value="">Seleccionar mascota...</option>
-                            @foreach ($mascotas as $mascota)
-                                <option value="{{ $mascota->id }}" {{ old('mascota_id') == $mascota->id ? 'selected' : '' }}>
-                                    {{ $mascota->nombre }} ({{ $mascota->especie }})
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('mascota_id')
-                            <span style="color:#b33a2e; font-size:12px;">{{ $message }}</span>
-                        @enderror
-                    </div>
-
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-                        <div class="form-group" style="margin-bottom:16px;">
-                            <label for="fecha" style="display:block; font-size:13px; font-weight:600; color:#4a5751; margin-bottom:6px;">Fecha *</label>
-                            <input type="date" name="fecha" id="fecha"
-                                value="{{ old('fecha') }}"
-                                class="search-input @error('fecha') is-invalid @enderror"
-                                min="{{ date('Y-m-d') }}" required
-                            >
-                            @error('fecha')
-                                <span style="color:#b33a2e; font-size:12px;">{{ $message }}</span>
-                            @enderror
-                        </div>
-
-                        <div class="form-group" style="margin-bottom:16px;">
-                            <label for="hora" style="display:block; font-size:13px; font-weight:600; color:#4a5751; margin-bottom:6px;">Hora *</label>
-                            <input type="time" name="hora" id="hora"
-                                value="{{ old('hora') }}"
-                                class="search-input @error('hora') is-invalid @enderror"
-                                required
-                            >
-                            @error('hora')
-                                <span style="color:#b33a2e; font-size:12px;">{{ $message }}</span>
-                            @enderror
-                        </div>
-                    </div>
-
-                    <div class="form-group" style="margin-bottom:20px;">
-                        <label for="motivo" style="display:block; font-size:13px; font-weight:600; color:#4a5751; margin-bottom:6px;">Motivo *</label>
-                        <textarea name="motivo" id="motivo" rows="3"
-                            class="search-input @error('motivo') is-invalid @enderror"
-                            placeholder="Ej: Vacunación, revisión general..."
-                            required>{{ old('motivo') }}</textarea>
-                        @error('motivo')
-                            <span style="color:#b33a2e; font-size:12px;">{{ $message }}</span>
-                        @enderror
-                    </div>
-
-                    <button type="submit" class="btn-new-appointment" style="
-                        background:#00A86B; color:white; border:none;
-                        padding:12px 24px; border-radius:10px; font-size:14px;
-                        font-weight:bold; cursor:pointer; width:100%;
-                        transition:background 0.2s;
-                    ">📅 Agendar Cita</button>
-                </form>
+        @if ($loop->last)
             </div>
+        @endif
+    @empty
+        <div class="card" style="text-align:center; padding:50px;">
+            <p style="font-size:48px; margin-bottom:15px;">🐾</p>
+            <h2 style="color:#1e2f25; margin-bottom:8px;">Aún no tienes mascotas registradas</h2>
+            <p style="color:#6b7770; font-size:14px; margin-bottom:20px;">
+                Registra tu primera mascota para empezar a gestionar sus citas y expedientes.
+            </p>
+
+            <a href="{{ url('/mascotas/registrar') }}" class="btn-new-pet">
+                🐾 Registrar mi primera mascota
+            </a>
         </div>
+    @endforelse
 
-    </div>
-
-    @if (session('status'))
-        <div class="alert-bar" style="margin-top:20px; background:#def2e6; color:#1a7a4a; border-color:#b8e6c8;">
-            {{ session('status') }}
+    @if ($mascotas->isNotEmpty())
+        <div class="alert-bar">
+            <div class="alert-icon" style="width:36px; height:36px; border-radius:50%; background:rgba(43,76,126,0.1); display:flex; align-items:center; justify-content:center; flex-shrink:0;">ℹ️</div>
+            <div>
+                <strong>Datos verificados por veterinarios</strong><br>
+                <span style="opacity:0.8; font-size:13px;">Tus expedientes están protegidos y son de solo lectura.</span>
+            </div>
         </div>
     @endif
 @endsection

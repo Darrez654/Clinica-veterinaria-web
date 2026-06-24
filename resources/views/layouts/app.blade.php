@@ -137,7 +137,14 @@
             </div>
             <ul class="menu-items">
                 @section('sidebar')
-                    <li><a href="/dashboard" class="menu-item">🏠 Inicio</a></li>
+                    @auth
+                        @if(Auth::user()->rol->nombre === 'admin')
+                            <li><a href="{{ url('/admin/audit-logs') }}" class="menu-item">📋 Auditoría</a></li>
+                            <li><a href="{{ url('/admin/usuarios') }}" class="menu-item">👥 Usuarios</a></li>
+                        @endif
+                    @endauth
+                    <li><a href="{{ url('/dashboard') }}" class="menu-item">🏠 Inicio</a></li>
+                    <li><a href="{{ url('/notificaciones') }}" class="menu-item">🔔 Notificaciones</a></li>
                 @show
             </ul>
         </div>
@@ -147,7 +154,7 @@
                     <strong>{{ Auth::user()->nombre }}</strong><br>
                     <span style="opacity:0.7;">{{ Auth::user()->email }}</span>
                 </div>
-                <form method="POST" action="/logout" style="display:inline;">
+                <form method="POST" action="{{ url('/logout') }}" style="display:inline;">
                     @csrf
                     <button type="submit" style="background:none;border:none;color:#b33a2e;cursor:pointer;font-size:13px;">🚪 Salir</button>
                 </form>
@@ -164,7 +171,21 @@
                 <button class="toggle-btn" onclick="toggleMenu()">☰</button>
                 <div class="breadcrumbs">@yield('breadcrumbs', 'Home')</div>
             </div>
-            <a href="/perfil" class="user-profile" style="text-decoration:none;color:inherit;">
+            @auth
+                @php
+                    use App\Models\Notificacion;
+                    $noLeidas = Notificacion::noLeidas(Auth::id());
+                @endphp
+                <a href="{{ url('/notificaciones') }}" style="position:relative; text-decoration:none; font-size:22px; padding:6px 10px; border-radius:8px; background:white; border:1px solid #d0d9d5; box-shadow:0 1px 4px rgba(0,0,0,0.06); margin-right:8px;" onmouseover="this.style.background='#00A86B'; this.style.color='white'" onmouseout="this.style.background='white'; this.style.color='#1e2f25'">
+                    🔔
+                    @if($noLeidas > 0)
+                        <span style="position:absolute; top:-4px; right:-6px; background:#dc3545; color:white; font-size:10px; font-weight:bold; min-width:18px; height:18px; border-radius:9px; display:flex; align-items:center; justify-content:center; padding:0 4px;">
+                            {{ $noLeidas > 9 ? '9+' : $noLeidas }}
+                        </span>
+                    @endif
+                </a>
+            @endauth
+            <a href="{{ url('/perfil') }}" class="user-profile" style="text-decoration:none;color:inherit;">
                 <div style="text-align:right;font-size:14px;">
                     <strong>@auth {{ Auth::user()->nombre }} @endauth</strong><br>
                     <span style="opacity:0.7;font-size:12px;">@auth {{ Auth::user()->email }} @endauth</span>

@@ -56,7 +56,7 @@
             </div>
         @endif
 
-        <form method="POST" action="/restablecer-contrasena">
+        <form method="POST" action="{{ url('/restablecer-contrasena') }}">
             @csrf
 
             <input type="hidden" name="token" value="{{ $token }}">
@@ -81,7 +81,152 @@
             <button type="submit" class="btn">Restablecer contraseña</button>
         </form>
 
-        <div class="register-link"><a href="/login">← Volver al inicio de sesión</a></div>
+        <div class="register-link"><a href="{{ url('/login') }}">← Volver al inicio de sesión</a></div>
     </div>
 </body>
 </html>
+                </div>
+                <button onclick="cerrarModalSubir()" style="
+                    width:32px; height:32px; border-radius:8px; border:none;
+                    background:#f0f4f2; cursor:pointer; font-size:16px;
+                    display:flex; align-items:center; justify-content:center;
+                ">✕</button>
+            </div>
+
+
+            <form method="POST" action="{{ url('/documentos/subir') }}" enctype="multipart/form-data">
+                @csrf
+
+                <div class="form-group" style="margin-bottom:18px;">
+                    <label for="mascota_id_subir" style="display:block; font-size:13px; font-weight:600; color:#4a5751; margin-bottom:6px;">Mascota *</label>
+                    <select name="mascota_id" id="mascota_id_subir" class="search-input" required>
+                        <option value="">Seleccionar mascota...</option>
+                        @foreach ($mascotas as $m)
+                            <option value="{{ $m->id }}">{{ $m->nombre }} ({{ $m->especie }})</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom:18px;">
+                    <label for="archivo" style="display:block; font-size:13px; font-weight:600; color:#4a5751; margin-bottom:6px;">Archivo PDF *</label>
+                    <input type="file" name="archivo" id="archivo" accept=".pdf,application/pdf"
+                        style="width:100%; padding:10px; border:2px solid #e0e8e4; border-radius:10px; font-size:14px;"
+                        required>
+                    <span style="font-size:12px; color:#6b7770; margin-top:4px; display:block;">Solo PDF · Máximo 10 MB</span>
+                </div>
+
+                <div style="display:flex; gap:12px; justify-content:flex-end;">
+                    <button type="button" onclick="cerrarModalSubir()" style="
+                        background:transparent; color:#6b7770; border:1px solid #dce3dc;
+                        padding:10px 24px; border-radius:8px; font-size:14px; cursor:pointer;
+                    ">Cancelar</button>
+                    <button type="submit" style="
+                        background:#00A86B; color:white; border:none;
+                        padding:10px 24px; border-radius:8px; font-size:14px;
+                        font-weight:600; cursor:pointer;
+                    ">📤 Subir PDF</button>
+                </div>
+            </form>
+        </div>
+    </div>
+@endsection
+
+@push('scripts')
+<script>
+    function abrirModalSubir() {
+        document.getElementById('modalSubirPDF').style.display = 'flex';
+    }
+    function cerrarModalSubir() {
+        document.getElementById('modalSubirPDF').style.display = 'none';
+    }
+    document.getElementById('modalSubirPDF').addEventListener('click', function(e) {
+        if (e.target === this) cerrarModalSubir();
+    });
+</script>
+@endpush
+                @endforelse
+            </div>
+        </div>
+
+        {{-- ============================================================
+             COLUMNA DERECHA — FORMULARIO NUEVA CITA
+             ============================================================ --}}
+        <div>
+            <div class="card" style="position:sticky; top:90px;">
+                <h2 style="font-size:18px; margin-bottom:4px;">📅 Nueva Cita</h2>
+                <p style="font-size:13px; color:#6b7770; margin-bottom:18px;">Selecciona mascota, fecha y motivo.</p>
+
+
+                <form method="POST" action="{{ url('/citas') }}">
+                    @csrf
+
+                    <div class="form-group" style="margin-bottom:16px;">
+                        <label for="mascota_id" style="display:block; font-size:13px; font-weight:600; color:#4a5751; margin-bottom:6px;">Mascota *</label>
+                        <select name="mascota_id" id="mascota_id" class="search-input @error('mascota_id') is-invalid @enderror" required>
+                            <option value="">Seleccionar mascota...</option>
+                            @foreach ($mascotas as $mascota)
+                                <option value="{{ $mascota->id }}" {{ old('mascota_id') == $mascota->id ? 'selected' : '' }}>
+                                    {{ $mascota->nombre }} ({{ $mascota->especie }})
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('mascota_id')
+                            <span style="color:#b33a2e; font-size:12px;">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                        <div class="form-group" style="margin-bottom:16px;">
+                            <label for="fecha" style="display:block; font-size:13px; font-weight:600; color:#4a5751; margin-bottom:6px;">Fecha *</label>
+                            <input type="date" name="fecha" id="fecha"
+                                value="{{ old('fecha') }}"
+                                class="search-input @error('fecha') is-invalid @enderror"
+                                min="{{ date('Y-m-d') }}" required
+                            >
+                            @error('fecha')
+                                <span style="color:#b33a2e; font-size:12px;">{{ $message }}</span>
+                            @enderror
+                        </div>
+
+                        <div class="form-group" style="margin-bottom:16px;">
+                            <label for="hora" style="display:block; font-size:13px; font-weight:600; color:#4a5751; margin-bottom:6px;">Hora *</label>
+                            <input type="time" name="hora" id="hora"
+                                value="{{ old('hora') }}"
+                                class="search-input @error('hora') is-invalid @enderror"
+                                required
+                            >
+                            @error('hora')
+                                <span style="color:#b33a2e; font-size:12px;">{{ $message }}</span>
+                            @enderror
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom:20px;">
+                        <label for="motivo" style="display:block; font-size:13px; font-weight:600; color:#4a5751; margin-bottom:6px;">Motivo *</label>
+                        <textarea name="motivo" id="motivo" rows="3"
+                            class="search-input @error('motivo') is-invalid @enderror"
+                            placeholder="Ej: Vacunación, revisión general..."
+                            required>{{ old('motivo') }}</textarea>
+                        @error('motivo')
+                            <span style="color:#b33a2e; font-size:12px;">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <button type="submit" class="btn-new-appointment" style="
+                        background:#00A86B; color:white; border:none;
+                        padding:12px 24px; border-radius:10px; font-size:14px;
+                        font-weight:bold; cursor:pointer; width:100%;
+                        transition:background 0.2s;
+                    ">📅 Agendar Cita</button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+    @if (session('status'))
+        <div class="alert-bar" style="margin-top:20px; background:#def2e6; color:#1a7a4a; border-color:#b8e6c8;">
+            {{ session('status') }}
+        </div>
+    @endif
+@endsection

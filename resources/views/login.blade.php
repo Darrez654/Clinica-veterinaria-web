@@ -133,7 +133,7 @@
             </div>
         @endif
 
-        <form method="POST" action="/login">
+        <form method="POST" action="{{ url('/login') }}">
             @csrf
 
             <div class="form-group">
@@ -166,11 +166,11 @@
         </form>
 
         <div style="text-align:center; margin-top:14px;">
-            <a href="/olvide-contrasena" style="color:#6b7770; font-size:13px; text-decoration:none;">¿Olvidaste tu contraseña?</a>
+            <a href="{{ url('/olvide-contrasena') }}" style="color:#6b7770; font-size:13px; text-decoration:none;">¿Olvidaste tu contraseña?</a>
         </div>
 
         <div class="register-link">
-            ¿No tienes cuenta? <a href="/registro">Regístrate aquí</a>
+            ¿No tienes cuenta? <a href="{{ url('/registro') }}">Regístrate aquí</a>
         </div>
     </div>
 

@@ -20,7 +20,7 @@
             padding: 45px 40px;
             border-radius: 20px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.08);
-            width: 400px;
+            width: 420px;
         }
         .login-card h2 {
             color: #00A86B;
@@ -45,7 +45,8 @@
             font-size: 14px;
             font-weight: 600;
         }
-        .form-group input {
+        .form-group input,
+        .form-group select {
             width: 100%;
             padding: 12px 14px;
             border: 2px solid #e0e8e4;
@@ -53,12 +54,15 @@
             font-size: 14px;
             transition: border-color 0.3s, box-shadow 0.3s;
             outline: none;
+            background: white;
         }
-        .form-group input:focus {
+        .form-group input:focus,
+        .form-group select:focus {
             border-color: #00A86B;
             box-shadow: 0 0 0 4px rgba(0,168,107,0.1);
         }
-        .form-group input.is-invalid {
+        .form-group input.is-invalid,
+        .form-group select.is-invalid {
             border-color: #dc3545;
         }
 
@@ -137,6 +141,10 @@
             </div>
         @endif
 
+        <div style="background:#e8f4f0; color:#1a7a4a; padding:12px 14px; border-radius:10px; font-size:13px; margin-bottom:20px; border:1px solid #b8e6c8;">
+            ✅ Se te asignará el rol de <strong>Dueño de mascota</strong> automáticamente.
+        </div>
+
         <form method="POST" action="/registro">
             @csrf
 
@@ -189,6 +197,9 @@
                     required
                 >
             </div>
+
+            {{-- El rol se asigna automáticamente como 'cliente' --}}
+            {{-- El administrador puede cambiarlo desde el panel de gestión --}}
 
             <button type="submit" class="btn">Crear Cuenta</button>
         </form>
